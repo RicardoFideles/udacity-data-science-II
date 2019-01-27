@@ -285,3 +285,144 @@ ON a.id = w.account_id
 GROUP BY a.id, a.name, w.channel
 ORDER BY use_of_channel DESC
 LIMIT 10;
+
+-- Encontre as vendas em termos de dólares no total para todos os pedidos
+--  a cada ano, ordenados do maior ao menor. 
+-- Você notou quaisquer tendências nos totais das vendas anuais?
+
+SELECT DATE_PART('year', occurred_at) ord_year,  SUM(total_amt_usd) total_spent
+FROM orders
+GROUP BY 1
+ORDER BY 2 DESC;
+
+-- A cada ano o faturameno aumenta.
+
+-- Em qual mês Parch & Posey teve mais vendas em termos de total de dólares? 
+-- Todos os meses são uniformemente representados pelo conjunto de dados?
+
+SELECT DATE_PART('month', occurred_at) ord_year,  SUM(total_amt_usd) total_spent
+FROM orders
+GROUP BY 1
+ORDER BY 2 DESC;
+
+-- Mes de Dezembro
+-- não.
+
+-- Em qual ano Parch & Posey teve mais vendas em termos de número total de pedidos? 
+-- Todos os anos são uniformemente representados pelo conjunto de dados?
+
+SELECT DATE_PART('year', occurred_at) ord_year,  COUNT(*) number_of_orders
+FROM orders
+GROUP BY 1
+ORDER BY 2 DESC;
+
+-- 2016
+
+-- Em qual mês Parch & Posey teve mais vendas em termos de número total de pedidos? 
+-- Todos os meses são uniformemente representados pelo conjunto de dados?
+
+SELECT DATE_PART('month', occurred_at) ord_year,  COUNT(*) number_of_orders
+FROM orders
+GROUP BY 1
+ORDER BY 2 DESC;
+
+-- mes 12 - dezembro
+
+-- Em qual mês de qual ano Walmart gastou mais em gloss paper em termos de dólares?
+
+SELECT DATE_TRUNC('month', o.occurred_at) ord_date, SUM(o.gloss_amt_usd) tot_spent
+FROM orders o 
+JOIN accounts a
+ON a.id = o.account_id
+WHERE a.name = 'Walmart'
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1;
+
+-- CASES 
+
+SELECT id, account_id, standard_amt_usd/standard_qty AS unit_price
+FROM orders
+LIMIT
+10;
+
+SELECT account_id,
+      CASE 
+            WHEN standard_qty = 0 OR standard_qty IS NULL 
+                  THEN 0
+            ELSE standard_amt_usd/standard_qty 
+      END 
+      AS unit_price
+FROM orders
+LIMIT
+10;
+
+-- Gostaríamos de entender três níveis diferentes de clientes com base na quantia associada às suas compras. 
+-- O ramo superior inclui qualquer um com um Lifetime Value (vendas totais de todos os pedidos) maior que 200.000 dólares. 
+-- O segundo ramo está entre 200.000 e 100.000 dólares. 
+-- O ramo mais baixo é qualquer um abaixo de 100.000 dólares. 
+-- Forneça uma tabela que inclui o nível associado a cada conta. 
+-- Você deve fornecer o account name (nome da conta), as total sales of all orders (vendas totais de todos os pedidos) 
+-- para o cliente e o nível. Ordene com os clientes que mais gastam sendo listados primeiro.
+
+SELECT a.name, SUM(total_amt_usd) total_spent, 
+     CASE WHEN SUM(total_amt_usd) > 200000 THEN 'top'
+     WHEN  SUM(total_amt_usd) > 100000 THEN 'middle'
+     ELSE 'low' END AS customer_level
+FROM orders o
+JOIN accounts a
+ON o.account_id = a.id 
+GROUP BY a.name
+ORDER BY 2 DESC;
+
+-- Gostaríamos de fazer um cálculo similar antes, mas queremos obter a quantia total gasta por clientes somente em 2016 e 2017.
+-- Mantenha os mesmos níveis da pergunta anterior. Ordene com os clientes que mais gastam sendo listados primeiro.
+
+SELECT a.name, DATE_PART('year', o.occurred_at), SUM(total_amt_usd) total_spent, 
+     CASE WHEN SUM(total_amt_usd) > 200000 THEN 'top'
+     WHEN  SUM(total_amt_usd) > 100000 THEN 'middle'
+     ELSE 'low' END AS customer_level
+FROM orders o
+JOIN accounts a
+ON o.account_id = a.id 
+WHERE DATE_PART('year', o.occurred_at) = '2016' OR DATE_PART('year', o.occurred_at) = '2017'
+GROUP BY a.name, DATE_PART('year', o.occurred_at)
+ORDER BY 3 DESC;
+
+-- Gostaríamos de identificar os sales reps (representantes de vendas) com melhor desempenho, que são os representantes associados 
+-- a mais de 200 pedidos. 
+-- Crie uma tabela com o sales rep name (nome de representante), o número total de pedidos e uma coluna com top ou not dependendo 
+-- se eles possuem ou não mais de 200 pedidos, respectivamente. Coloque os top vendedores primeiro em sua tabela final.
+
+SELECT s.name, COUNT(*) num_ords,
+     CASE WHEN COUNT(*) > 200 THEN 'top'
+     ELSE 'not' END AS sales_rep_level
+FROM orders o
+JOIN accounts a
+ON o.account_id = a.id 
+JOIN sales_reps s
+ON s.id = a.sales_rep_id
+GROUP BY s.name
+ORDER BY 2 DESC;
+
+
+-- A anterior não considerava o meio, nem a quantia em dólares associada com essas vendas. 
+-- A gestão decide que eles querem ver essas características representadas também. Gostaríamos de identificar os sales reps 
+-- (representantes de vendas) com melhor desempenho, que são os representantes associados a mais de 200 pedidos ou mais de 750000 
+-- em vendas, no total. O grupo do meio contém qualquer representante com mais de 150 pedidos ou 500000 em vendas. 
+-- Crie uma tabela com o sales rep name (nome de representante), o número total de pedidos, vendas totais em todos os pedidos 
+-- e uma coluna com top (alto), middle (meio) ou low (baixo) dependendo desses critérios. 
+-- Coloque as pessoas com mais vendas com base nas quantias em dólares de vendas no final de sua tabela. 
+-- Você pode ver alguns vendedores chateados por esse critério!
+
+SELECT s.name, COUNT(*), SUM(o.total_amt_usd) total_spent, 
+     CASE WHEN COUNT(*) > 200 OR SUM(o.total_amt_usd) > 750000 THEN 'top'
+     WHEN COUNT(*) > 150 OR SUM(o.total_amt_usd) > 500000 THEN 'middle'
+     ELSE 'low' END AS sales_rep_level
+FROM orders o
+JOIN accounts a
+ON o.account_id = a.id 
+JOIN sales_reps s
+ON s.id = a.sales_rep_id
+GROUP BY s.name
+ORDER BY 3 DESC;
