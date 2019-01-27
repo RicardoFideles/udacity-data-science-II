@@ -113,7 +113,175 @@ ON r.id = s.region_id
 GROUP BY r.name
 ORDER BY num_reps;
 
+-- Para cada conta, determine a quantidade média de papel que eles pediram em seus pedidos. 
+-- Seu resultado deve ter quatro colunas - uma para o nome da conta e uma para a quantidade média comprada para cada um dos tipos 
+-- de papel para cada conta. 
+
+SELECT a.name, AVG(o.standard_qty) avg_stand, AVG(o.gloss_qty) avg_gloss, AVG(o.poster_qty) avg_post
+FROM accounts a
+      JOIN orders o
+      ON a.id = o.account_id
+GROUP BY a.name;
+
+-- Para cada conta, determine o valor gasto em média por pedido em cada tipo de papel. 
+-- Seu resultado deve ter quatro colunas - uma para o nome da conta e uma para a quantia média gasta em casa tipo de papel. 
+
+SELECT a.name, AVG(o.standard_amt_usd) avg_stand, AVG(o.gloss_amt_usd) avg_gloss, AVG(o.poster_amt_usd) avg_post
+FROM accounts a
+      JOIN orders o
+      ON a.id = o.account_id
+GROUP BY a.name;
+
+-- Determine o número de vezes que um channel (canal) em particular foi usado na tabela web_events 
+-- para cada sales rep (representante de vendas). Sua tabela final deve ter três colunas - o name of the sales rep 
+-- (nome do representante de vendas), o channel (canal) e o número de ocorrências. 
+-- Ordene sua tabela com o maior número de ocorrências vindo primeiro.
+
+SELECT s.name, w.channel, COUNT(*) num_events
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id
+JOIN sales_reps s
+ON s.id = a.sales_rep_id
+GROUP BY s.name, w.channel
+ORDER BY num_events DESC;
+
+-- Determine o número de vezes que um channel (canal) em particular foi usado na tabela web_events 
+-- para cada region (região). 
+-- Sua tabela final deve ter três colunas - o region name (nome da região), o channel (canal) e o número de ocorrências. 
+-- Ordene sua tabela com o maior número de ocorrências vindo primeiro.
+
+SELECT r.name, w.channel, COUNT(*) num_events
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id
+JOIN sales_reps s
+ON s.id = a.sales_rep_id
+JOIN region r
+ON r.id = s.region_id
+GROUP BY r.name, w.channel
+ORDER BY num_events DESC;
+
+-- Use DISTINCT para testar se você tem quaisquer contas associadas com mais de uma região.
+
+SELECT a.id as "account id", r.id as "region id", 
+a.name as "account name", r.name as "region name"
+FROM accounts a
+JOIN sales_reps s
+ON s.id = a.sales_rep_id
+JOIN region r
+ON r.id = s.region_id;
+
+SELECT DISTINCT id, name
+FROM sales_reps;
+
+-- Algum dos sales reps (representantes de vendas) trabalhou em mais de uma conta?
+
+SELECT s.id, s.name, COUNT(*) num_accounts
+FROM accounts a
+JOIN sales_reps s
+ON s.id = a.sales_rep_id
+GROUP BY s.id, s.name
+ORDER BY num_accounts;
+
+SELECT DISTINCT id, name
+FROM sales_reps;
+
+-- Quantos sales reps (representantes de vendas) possuem mais de 5 contas gerenciadas por eles?
+
+SELECT s.name, COUNT(a.id) number_of_acc
+FROM accounts a
+JOIN sales_reps s ON s.id = a.sales_rep_id
+GROUP BY s.name
+HAVING COUNT(a.id) > 5
+ORDER BY number_of_acc DESC
 
 
+-- Quantas accounts (contas) possuem mais de 20 pedidos?
 
+SELECT a.name, COUNT(o.id) number_of_orders
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY a.name
+HAVING COUNT(o.id) > 20
+ORDER BY number_of_orders DESC
 
+-- Qual conta tem mais pedidos?
+SELECT a.name, COUNT(o.id) number_of_orders
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY a.name
+HAVING COUNT(o.id) > 20
+ORDER BY number_of_orders DESC
+limit 1
+
+-- Quantas contas gastaram mais do que 30.000 dólares, 
+-- no total, em todos os pedidos?
+
+SELECT a.name, SUM(o.total) total
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY a.name
+HAVING SUM(o.total) > 30000
+ORDER BY total DESC
+
+-- Quantas contas gastaram menos que 1.000 dólares, 
+-- no total, em todos os pedidos?
+
+SELECT a.name, SUM(o.total) total
+FROM accounts a
+JOIN orders o ON a.id = o.account_id
+GROUP BY a.name
+HAVING SUM(o.total) < 1000
+ORDER BY total DESC
+
+-- Qual conta gastou mais conosco
+
+SELECT a.id, a.name, SUM(o.total_amt_usd) total_spent
+FROM accounts a
+JOIN orders o
+ON a.id = o.account_id
+GROUP BY a.id, a.name
+ORDER BY total_spent DESC
+LIMIT 1;
+
+-- Qual conta menos gastou conosco?
+SELECT a.id, a.name, SUM(o.total_amt_usd) total_spent
+FROM accounts a
+JOIN orders o
+ON a.id = o.account_id
+GROUP BY a.id, a.name
+ORDER BY total_spent
+LIMIT 1;
+
+-- Quais contas usaram o facebook como um channel (canal) 
+-- para contactar clientes mais de 6 vezes?
+
+SELECT a.id, a.name, w.channel, COUNT(*) use_of_channel
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id
+GROUP BY a.id, a.name, w.channel
+HAVING COUNT(*) > 6 AND w.channel = 'facebook'
+ORDER BY use_of_channel;
+
+-- Qual conta usou mais o facebook como um channel (canal)? 
+
+SELECT a.id, a.name, w.channel, COUNT(*) use_of_channel
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id
+GROUP BY a.id, a.name, w.channel
+HAVING w.channel = 'facebook'
+ORDER BY use_of_channel DESC
+LIMIT 1
+
+-- Qual foi o canal usado mais frequentemente pela maioria das contas?
+
+SELECT a.id, a.name, w.channel, COUNT(*) use_of_channel
+FROM accounts a
+JOIN web_events w
+ON a.id = w.account_id
+GROUP BY a.id, a.name, w.channel
+ORDER BY use_of_channel DESC
+LIMIT 10;
